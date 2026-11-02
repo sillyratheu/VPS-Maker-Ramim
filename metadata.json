@@ -1,0 +1,6 @@
+{
+  "name": "TerminaVPS - Cloud VPS Terminal with Sudo Access",
+  "description": "Full-featured cloud Linux VPS terminal with root and sudo privileges, interactive process manager, filesystem persistence, package installer, and AI shell execution.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
