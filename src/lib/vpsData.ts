@@ -1,10 +1,12 @@
 import { VPSInstance, VirtualFile, ServiceItem, PortRule, TerminalTheme } from '../types/terminal';
 
+export const SHAHAJJO_LOGO = '/src/assets/images/shahajjo_vps_logo_1793627304958.jpg';
+
 export const INITIAL_VPS_INSTANCES: VPSInstance[] = [
   {
-    id: 'ramim-vps-01',
-    name: 'ramim-vps-prod',
-    hostname: 'ramim-vps-01',
+    id: 'shahajjo-vps-01',
+    name: 'shahajjo-vps-prod',
+    hostname: 'shahajjo-vps-01',
     os: 'Ubuntu 24.04.1 LTS (Noble Numbat)',
     ip: '164.92.128.45',
     vcpu: 4,
@@ -13,12 +15,12 @@ export const INITIAL_VPS_INSTANCES: VPSInstance[] = [
     region: 'us-east-1 (N. Virginia)',
     status: 'running',
     uptimeSeconds: 384500,
-    rootPassword: 'admin',
+    rootPassword: 'ramim123@Q',
   },
   {
-    id: 'ramim-vps-db',
-    name: 'ramim-vps-db-cluster',
-    hostname: 'ramim-vps-db',
+    id: 'shahajjo-vps-db',
+    name: 'shahajjo-vps-db-cluster',
+    hostname: 'shahajjo-vps-db',
     os: 'Debian GNU/Linux 12 (bookworm)',
     ip: '198.51.100.22',
     vcpu: 2,
@@ -27,21 +29,21 @@ export const INITIAL_VPS_INSTANCES: VPSInstance[] = [
     region: 'eu-central-1 (Frankfurt)',
     status: 'running',
     uptimeSeconds: 192300,
-    rootPassword: 'admin',
+    rootPassword: 'ramim123@Q',
   },
   {
-    id: 'ramim-vps-edge',
-    name: 'ramim-vps-tokyo-edge',
-    hostname: 'ramim-vps-edge',
+    id: 'shahajjo-vps-edge',
+    name: 'shahajjo-vps-edge-sg',
+    hostname: 'shahajjo-vps-edge',
     os: 'Alpine Linux v3.20',
     ip: '203.0.113.89',
     vcpu: 1,
     ramGb: 2,
     diskGb: 40,
-    region: 'ap-northeast-1 (Tokyo)',
+    region: 'ap-southeast-1 (Singapore)',
     status: 'running',
     uptimeSeconds: 84200,
-    rootPassword: 'admin',
+    rootPassword: 'ramim123@Q',
   },
 ];
 
@@ -210,13 +212,13 @@ export const INITIAL_FILES: VirtualFile[] = [
   {
     name: 'hostname',
     path: '/etc/hostname',
-    content: 'ramim-vps-01\n',
+    content: 'shahajjo-vps-01\n',
     isDirectory: false,
     permissions: '0644',
     owner: 'root',
     group: 'root',
     updatedAt: '2026-10-15 04:12',
-    size: 13,
+    size: 16,
   },
   {
     name: 'os-release',
@@ -398,24 +400,25 @@ echo "[+] Deployment completed successfully!"
   {
     name: 'server_info.txt',
     path: '/home/admin/server_info.txt',
-    content: `VPS Instance: ramim-vps-prod
-Hostname: ramim-vps-01
-Provider: Ramim VPS Cloud Infrastructure
+    content: `VPS Instance: shahajjo-vps-prod
+Hostname: shahajjo-vps-01
+Provider: Shahajjo VPS Cloud Infrastructure
 IP Address: 164.92.128.45
 vCPU: 4 Cores @ 3.4 GHz (EPYC)
 RAM: 8192 MB DDR5
 Storage: 160 GB NVMe PCIe Gen4
 OS: Ubuntu 24.04.1 LTS Noble
 Access Level: sudo (Full Privileges)
+Sudo / Root Password: ramim123@Q
 Default SSH Port: 22
-Web Ports: 80, 443, 3000
+Web Ports: 80, 443, 3000, 8080
 `,
     isDirectory: false,
     permissions: '0644',
     owner: 'admin',
     group: 'admin',
-    updatedAt: '2026-10-28 11:20',
-    size: 320,
+    updatedAt: '2026-11-02 05:50',
+    size: 360,
   },
   {
     name: 'projects',

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Shield, ShieldAlert, Terminal as TerminalIcon, Menu, X, Server, Activity, FileText, Cpu } from 'lucide-react';
+import { Shield, ShieldAlert, Terminal as TerminalIcon, Menu, X, Server, Activity, FileText, Code2, Key } from 'lucide-react';
 import { VPSInstance } from '../types/terminal';
+import { SHAHAJJO_LOGO } from '../lib/vpsData';
 
 interface Props {
   vpsList: VPSInstance[];
@@ -9,8 +10,8 @@ interface Props {
   isRoot: boolean;
   onToggleRoot: () => void;
   onQuickAction: (action: string) => void;
-  activeView: 'terminal' | 'htop' | 'nano' | 'files' | 'firewall';
-  setActiveView: (view: 'terminal' | 'htop' | 'nano' | 'files' | 'firewall') => void;
+  activeView: 'terminal' | 'codelab' | 'htop' | 'nano' | 'files' | 'firewall';
+  setActiveView: (view: 'terminal' | 'codelab' | 'htop' | 'nano' | 'files' | 'firewall') => void;
 }
 
 export const TopNav: React.FC<Props> = ({
@@ -23,24 +24,42 @@ export const TopNav: React.FC<Props> = ({
   setActiveView,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   return (
     <>
-      <header className="flex items-center justify-between gap-4 md:gap-8 px-4 md:px-6 py-2.5 bg-[#07090e] border-b border-white/[0.08] shrink-0 z-30 shadow-lg shadow-black/40">
-        {/* Zone 1: Brand Wordmark (Single text element with dark cyber aesthetic) */}
+      <header className="flex items-center justify-between gap-4 md:gap-8 px-4 md:px-6 py-2 bg-[#07090e] border-b border-white/[0.08] shrink-0 z-30 shadow-lg shadow-black/50">
+        {/* Zone 1: Brand Wordmark & Logo (Single text element with dark cyber aesthetic) */}
         <div className="flex items-center gap-3 shrink-0">
           <a
             href="/"
-            className="text-base font-bold tracking-tight text-white whitespace-nowrap shrink-0 flex items-center gap-2 group"
+            className="text-base font-bold tracking-tight text-white whitespace-nowrap shrink-0 flex items-center gap-2.5 group"
           >
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-sky-700 p-0.5 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.35)] group-hover:shadow-[0_0_20px_rgba(6,182,212,0.6)] transition-all">
-              <div className="w-full h-full bg-[#090d16] rounded-[6px] flex items-center justify-center text-cyan-400">
-                <TerminalIcon className="w-4 h-4" />
-              </div>
+            {/* Real Shahajjo VPS Logo */}
+            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.4)] group-hover:shadow-[0_0_20px_rgba(6,182,212,0.7)] transition-all shrink-0 bg-[#090d16]">
+              {!imgError ? (
+                <img
+                  src={SHAHAJJO_LOGO}
+                  alt="Shahajjo VPS Logo"
+                  referrerPolicy="no-referrer"
+                  onError={() => setImgError(true)}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-cyan-400">
+                  <TerminalIcon className="w-4 h-4" />
+                </div>
+              )}
             </div>
-            <span className="bg-gradient-to-r from-white via-neutral-100 to-cyan-200 bg-clip-text text-transparent font-extrabold tracking-tight">
-              Ramim VPS
-            </span>
+
+            <div className="flex flex-col">
+              <span className="bg-gradient-to-r from-white via-neutral-100 to-cyan-300 bg-clip-text text-transparent font-extrabold text-base tracking-tight leading-none">
+                Shahajjo VPS
+              </span>
+              <span className="text-[10px] text-neutral-400 font-normal font-mono leading-none pt-0.5">
+                Cloud Terminal
+              </span>
+            </div>
           </a>
 
           {/* VPS Instance Selector (Desktop) */}
@@ -64,7 +83,7 @@ export const TopNav: React.FC<Props> = ({
         </div>
 
         {/* Zone 2: 4-5 Single-Line Clean Navigation Links (PC) */}
-        <nav className="hidden lg:flex items-center gap-6 text-xs font-medium text-neutral-400">
+        <nav className="hidden lg:flex items-center gap-5 text-xs font-medium text-neutral-400">
           <button
             onClick={() => setActiveView('terminal')}
             className={`hover:text-cyan-300 transition-colors whitespace-nowrap shrink-0 py-1 ${
@@ -73,6 +92,17 @@ export const TopNav: React.FC<Props> = ({
           >
             Terminal Console
           </button>
+
+          <button
+            onClick={() => setActiveView('codelab')}
+            className={`flex items-center gap-1.5 hover:text-cyan-300 transition-colors whitespace-nowrap shrink-0 py-1 ${
+              activeView === 'codelab' ? 'text-cyan-400 font-semibold border-b-2 border-cyan-400' : ''
+            }`}
+          >
+            <Code2 className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Live Code Lab</span>
+          </button>
+
           <button
             onClick={() => setActiveView('htop')}
             className={`hover:text-cyan-300 transition-colors whitespace-nowrap shrink-0 py-1 ${
@@ -81,6 +111,7 @@ export const TopNav: React.FC<Props> = ({
           >
             Live Processes
           </button>
+
           <button
             onClick={() => setActiveView('nano')}
             className={`hover:text-cyan-300 transition-colors whitespace-nowrap shrink-0 py-1 ${
@@ -89,14 +120,16 @@ export const TopNav: React.FC<Props> = ({
           >
             Nano Editor
           </button>
+
           <button
             onClick={() => setActiveView('files')}
             className={`hover:text-cyan-300 transition-colors whitespace-nowrap shrink-0 py-1 ${
               activeView === 'files' ? 'text-cyan-400 font-semibold border-b-2 border-cyan-400' : ''
             }`}
           >
-            Filesystem Tree
+            Filesystem
           </button>
+
           <button
             onClick={() => setActiveView('firewall')}
             className={`hover:text-cyan-300 transition-colors whitespace-nowrap shrink-0 py-1 ${
@@ -117,7 +150,7 @@ export const TopNav: React.FC<Props> = ({
                 ? 'bg-rose-950/80 text-rose-200 hover:bg-rose-900 border border-rose-700/80 shadow-[0_0_15px_rgba(225,29,72,0.3)]'
                 : 'bg-[#0f172a] text-emerald-300 hover:bg-[#1e293b] border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
             }`}
-            title={isRoot ? 'Click to drop back to admin user' : 'Click to elevate to root (sudo -i)'}
+            title={isRoot ? 'Click to drop back to admin user' : 'Click to elevate to root (password: ramim123@Q)'}
           >
             {isRoot ? (
               <>
@@ -127,12 +160,12 @@ export const TopNav: React.FC<Props> = ({
             ) : (
               <>
                 <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="font-medium">SUDO ACCESS</span>
+                <span className="font-medium">SUDO: ramim123@Q</span>
               </>
             )}
           </button>
 
-          {/* Mobile Menu Toggle Button (Visible on Mobile/Tablet) */}
+          {/* Mobile Menu Toggle Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="lg:hidden min-h-[38px] min-w-[38px] flex items-center justify-center p-2 rounded-lg bg-neutral-900 border border-white/10 text-neutral-300 hover:text-white transition-colors"
@@ -143,7 +176,7 @@ export const TopNav: React.FC<Props> = ({
         </div>
       </header>
 
-      {/* Mobile Drawer Menu (Responsive Overlay for Mobile Viewports) */}
+      {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col justify-end animate-in fade-in duration-200">
           <div
@@ -154,11 +187,13 @@ export const TopNav: React.FC<Props> = ({
           <div className="relative bg-[#0c1019] border-t border-white/10 rounded-t-2xl p-5 space-y-4 shadow-2xl max-h-[85vh] overflow-y-auto">
             {/* Header in Drawer */}
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded bg-cyan-600 flex items-center justify-center text-white">
-                  <TerminalIcon className="w-3.5 h-3.5" />
-                </div>
-                <span className="font-bold text-white text-sm">Ramim VPS Navigation</span>
+              <div className="flex items-center gap-2.5">
+                <img
+                  src={SHAHAJJO_LOGO}
+                  alt="Shahajjo VPS Logo"
+                  className="w-7 h-7 rounded-lg object-cover"
+                />
+                <span className="font-bold text-white text-sm">Shahajjo VPS Navigation</span>
               </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}
@@ -171,7 +206,7 @@ export const TopNav: React.FC<Props> = ({
             {/* Mobile VPS Selector */}
             <div className="space-y-1">
               <span className="text-[11px] font-medium text-neutral-400 uppercase tracking-wider">
-                Select Active VPS Instance
+                Active VPS Instance
               </span>
               <select
                 value={activeVps.id}
@@ -200,6 +235,7 @@ export const TopNav: React.FC<Props> = ({
               <div className="grid grid-cols-1 gap-2">
                 {[
                   { id: 'terminal', label: 'Terminal Console', icon: TerminalIcon, desc: 'Interactive Linux bash shell' },
+                  { id: 'codelab', label: 'Live Code Lab', icon: Code2, desc: 'Put code and run it live with preview' },
                   { id: 'htop', label: 'Live htop', icon: Activity, desc: 'CPU meters & process killer' },
                   { id: 'nano', label: 'Nano Editor', icon: FileText, desc: 'In-terminal text editor' },
                   { id: 'files', label: 'Filesystem Tree', icon: Server, desc: 'Explore virtual filesystem' },
@@ -245,7 +281,7 @@ export const TopNav: React.FC<Props> = ({
                 }`}
               >
                 {isRoot ? <ShieldAlert className="w-5 h-5 text-rose-400" /> : <Shield className="w-5 h-5 text-emerald-400" />}
-                <span>{isRoot ? 'Drop Root Shell to User (admin)' : 'Elevate to Root Shell (sudo -i)'}</span>
+                <span>{isRoot ? 'Drop Root Shell to User (admin)' : 'Elevate to Root (password: ramim123@Q)'}</span>
               </button>
             </div>
           </div>

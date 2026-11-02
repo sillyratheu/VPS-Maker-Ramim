@@ -21,6 +21,9 @@ import {
   Copy,
   Check,
   Zap,
+  Package,
+  ArrowDownToLine,
+  Globe,
 } from 'lucide-react';
 import { VPSInstance, VirtualFile, ServiceItem, PortRule } from '../types/terminal';
 
@@ -39,7 +42,7 @@ interface Props {
   onClose?: () => void;
 }
 
-type PanelTab = 'telemetry' | 'files' | 'services' | 'firewall' | 'snippets';
+type PanelTab = 'telemetry' | 'files' | 'downloads' | 'services' | 'firewall' | 'snippets';
 
 export const VPSControlPanel: React.FC<Props> = ({
   vps,
@@ -89,6 +92,82 @@ export const VPSControlPanel: React.FC<Props> = ({
     navigator.clipboard.writeText(text);
     setCopiedText(id);
     setTimeout(() => setCopiedText(null), 2000);
+  };
+
+  // Real download to user's PC using browser Blob
+  const handleDownloadToPC = (file: VirtualFile) => {
+    try {
+      const blob = new Blob([file.content || ''], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      // fallback
+    }
+  };
+
+  // Remote download to VPS state
+  const [downloadUrl, setDownloadUrl] = useState('https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py');
+  const [downloadDestPath, setDownloadDestPath] = useState('/home/admin/speedtest.py');
+  const [isDownloadingToVPS, setIsDownloadingToVPS] = useState(false);
+  const [downloadStatusMsg, setDownloadStatusMsg] = useState<string | null>(null);
+
+  const handleDownloadFromUrlToVPS = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!downloadUrl.trim()) return;
+    setIsDownloadingToVPS(true);
+    setDownloadStatusMsg('Fetching from remote server via proxy...');
+
+    try {
+      const res = await fetch('/api/terminal/fetch-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: downloadUrl.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setDownloadStatusMsg(`Error: ${data.error || 'Failed to download'}`);
+        return;
+      }
+
+      const content = data.body || '';
+      const targetPath = downloadDestPath.trim() || `/home/admin/${downloadUrl.split('/').pop() || 'download.txt'}`;
+      const fileName = targetPath.split('/').pop() || 'download.txt';
+      const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 16);
+
+      const existingIndex = files.findIndex(f => f.path === targetPath);
+      let updated: VirtualFile[];
+      const newFileObj: VirtualFile = {
+        name: fileName,
+        path: targetPath,
+        content: content,
+        isDirectory: false,
+        permissions: isRoot ? '0755' : '0644',
+        owner: activeTabUser,
+        group: activeTabUser,
+        updatedAt: nowStr,
+        size: content.length,
+      };
+
+      if (existingIndex >= 0) {
+        updated = files.map((f, i) => (i === existingIndex ? newFileObj : f));
+      } else {
+        updated = [...files, newFileObj];
+      }
+
+      onUpdateFiles(updated);
+      setSelectedFile(newFileObj);
+      setDownloadStatusMsg(`Successfully downloaded ${content.length} bytes to ${targetPath}`);
+    } catch (err: unknown) {
+      setDownloadStatusMsg(`Download failed: ${err instanceof Error ? err.message : 'Network error'}`);
+    } finally {
+      setIsDownloadingToVPS(false);
+    }
   };
 
   // Build tree from files
@@ -210,6 +289,18 @@ export const VPSControlPanel: React.FC<Props> = ({
           >
             <Folder className="w-3.5 h-3.5 text-sky-400" />
             <span>Files</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('downloads')}
+            className={`min-h-[36px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${
+              activeTab === 'downloads'
+                ? 'bg-neutral-800 text-white shadow-sm border border-white/10'
+                : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900/50'
+            }`}
+          >
+            <Download className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Downloads</span>
           </button>
 
           <button
@@ -443,13 +534,23 @@ export const VPSControlPanel: React.FC<Props> = ({
                     <FileText className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span className="truncate">{selectedFile.path}</span>
                   </div>
-                  <button
-                    onClick={() => onOpenFileInNano(selectedFile.path)}
-                    className="flex items-center gap-1 px-2 py-0.5 bg-sky-950 hover:bg-sky-900 text-sky-200 border border-sky-800 rounded text-xs font-mono transition-colors shrink-0"
-                  >
-                    <Edit3 className="w-3 h-3" />
-                    <span>Edit in Nano</span>
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => handleDownloadToPC(selectedFile)}
+                      className="flex items-center gap-1 px-2 py-0.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-700/60 rounded text-xs font-mono transition-colors shrink-0"
+                      title="Download this file to your computer"
+                    >
+                      <Download className="w-3 h-3" />
+                      <span>Download</span>
+                    </button>
+                    <button
+                      onClick={() => onOpenFileInNano(selectedFile.path)}
+                      className="flex items-center gap-1 px-2 py-0.5 bg-sky-950 hover:bg-sky-900 text-sky-200 border border-sky-800 rounded text-xs font-mono transition-colors shrink-0"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                      <span>Edit in Nano</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="text-[11px] text-neutral-400 font-mono grid grid-cols-2 gap-1 pt-1 border-t border-neutral-800">
@@ -465,6 +566,163 @@ export const VPSControlPanel: React.FC<Props> = ({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB: DOWNLOADS & PACKAGE MANAGER */}
+        {activeTab === 'downloads' && (
+          <div className="space-y-4">
+            {/* Download Remote URL to VPS */}
+            <div className="bg-neutral-900 border border-neutral-800 p-3.5 rounded-xl space-y-3 shadow-lg">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-cyan-400" />
+                <span className="text-white font-semibold text-xs">Download to VPS from URL</span>
+              </div>
+              <p className="text-[11px] text-neutral-400 leading-normal">
+                Fetch any public script, file, or asset over HTTP/HTTPS directly into your Shahajjo VPS.
+              </p>
+
+              <form onSubmit={handleDownloadFromUrlToVPS} className="space-y-2.5 font-mono text-xs">
+                <div>
+                  <label className="text-[10px] text-neutral-400 font-sans block pb-1">Target URL</label>
+                  <input
+                    type="url"
+                    value={downloadUrl}
+                    onChange={e => setDownloadUrl(e.target.value)}
+                    placeholder="https://example.com/script.sh"
+                    required
+                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg p-2 text-neutral-100 outline-none focus:border-cyan-500 text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-neutral-400 font-sans block pb-1">Destination VPS Path</label>
+                  <input
+                    type="text"
+                    value={downloadDestPath}
+                    onChange={e => setDownloadDestPath(e.target.value)}
+                    placeholder="/home/admin/file.txt"
+                    required
+                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg p-2 text-neutral-100 outline-none focus:border-cyan-500 text-xs"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="submit"
+                    disabled={isDownloadingToVPS}
+                    className="min-h-[38px] flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-neutral-800 text-white rounded-lg text-xs font-medium font-sans transition-all active:scale-95 shadow-md shadow-cyan-600/20"
+                  >
+                    <Download className={`w-3.5 h-3.5 ${isDownloadingToVPS ? 'animate-bounce' : ''}`} />
+                    <span>{isDownloadingToVPS ? 'Downloading...' : 'Download to VPS'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDownloadUrl('https://raw.githubusercontent.com/sivel/speedtest-cli/master/speedtest.py');
+                      setDownloadDestPath('/home/admin/speedtest.py');
+                    }}
+                    className="min-h-[38px] px-2.5 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg text-xs font-sans transition-colors"
+                    title="Load Speedtest CLI URL"
+                  >
+                    Preset
+                  </button>
+                </div>
+
+                {downloadStatusMsg && (
+                  <div className="text-[11px] p-2 rounded bg-neutral-950 border border-neutral-800 text-cyan-300 font-sans">
+                    {downloadStatusMsg}
+                  </div>
+                )}
+              </form>
+            </div>
+
+            {/* 1-Click Linux Package Downloader */}
+            <div className="bg-neutral-900 border border-neutral-800 p-3.5 rounded-xl space-y-3 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Package className="w-4 h-4 text-purple-400" />
+                  <span className="text-white font-semibold text-xs">One-Click Package Installer</span>
+                </div>
+                <span className="text-[10px] text-neutral-400 font-mono">apt / dpkg</span>
+              </div>
+              <p className="text-[11px] text-neutral-400 leading-normal">
+                Quickly download and install authentic Linux packages into your VPS terminal.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono">
+                {[
+                  { name: 'Git', cmd: 'sudo apt install -y git', desc: 'VCS & cloning' },
+                  { name: 'Python 3', cmd: 'sudo apt install -y python3 python3-pip', desc: 'Python & pip' },
+                  { name: 'Node.js', cmd: 'sudo apt install -y nodejs npm', desc: 'JS Runtime & NPM' },
+                  { name: 'Docker', cmd: 'sudo apt install -y docker.io docker-compose', desc: 'Containers' },
+                  { name: 'Nginx', cmd: 'sudo apt install -y nginx', desc: 'Web Server' },
+                  { name: 'FFmpeg', cmd: 'sudo apt install -y ffmpeg', desc: 'Media codec' },
+                  { name: 'PostgreSQL', cmd: 'sudo apt install -y postgresql', desc: 'SQL Database' },
+                  { name: 'Redis', cmd: 'sudo apt install -y redis-server', desc: 'In-memory cache' },
+                  { name: 'Htop / Neo', cmd: 'sudo apt install -y htop neofetch', desc: 'System tools' },
+                  { name: 'Build Tools', cmd: 'sudo apt install -y build-essential', desc: 'GCC, Make' },
+                ].map((pkg, i) => (
+                  <div
+                    key={i}
+                    className="p-2.5 rounded-lg bg-neutral-950 border border-neutral-800 hover:border-neutral-700 flex flex-col justify-between gap-1.5 transition-colors"
+                  >
+                    <div>
+                      <div className="text-white font-semibold text-xs font-sans flex items-center justify-between">
+                        <span>{pkg.name}</span>
+                        <span className="text-[10px] text-neutral-500 font-mono">{pkg.desc}</span>
+                      </div>
+                      <div className="text-[10px] text-neutral-400 truncate pt-0.5">{pkg.cmd}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onRunCommand(pkg.cmd)}
+                      className="min-h-[32px] w-full flex items-center justify-center gap-1.5 px-2 py-1 rounded bg-purple-950/60 hover:bg-purple-900 text-purple-200 border border-purple-800 text-[11px] font-sans font-medium transition-colors cursor-pointer"
+                    >
+                      <Download className="w-3 h-3 text-purple-300" />
+                      <span>Install Package</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Download VPS Files to PC */}
+            <div className="bg-neutral-900 border border-neutral-800 p-3.5 rounded-xl space-y-3 shadow-lg">
+              <div className="flex items-center gap-2">
+                <ArrowDownToLine className="w-4 h-4 text-emerald-400" />
+                <span className="text-white font-semibold text-xs">Download VPS Files to Local PC</span>
+              </div>
+              <p className="text-[11px] text-neutral-400 leading-normal">
+                Export and save any file stored inside the Shahajjo VPS straight to your local PC.
+              </p>
+
+              <div className="space-y-1.5 max-h-56 overflow-y-auto">
+                {files
+                  .filter(f => !f.isDirectory)
+                  .map(file => (
+                    <div
+                      key={file.path}
+                      className="flex items-center justify-between gap-2 p-2 rounded-lg bg-neutral-950 border border-neutral-800/80 hover:border-neutral-700 text-xs font-mono transition-colors"
+                    >
+                      <div className="truncate flex-1">
+                        <div className="text-neutral-200 truncate">{file.name}</div>
+                        <div className="text-[10px] text-neutral-500 truncate">{file.path} ({file.size} B)</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadToPC(file)}
+                        className="min-h-[32px] px-2.5 py-1 flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border border-emerald-800/80 rounded text-xs font-sans font-medium transition-colors shrink-0 cursor-pointer"
+                        title={`Download ${file.name} to PC`}
+                      >
+                        <Download className="w-3 h-3 text-emerald-400" />
+                        <span>To PC</span>
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
           </div>
         )}
 

@@ -100,6 +100,63 @@ Rules:
     }
   });
 
+  // Real URL fetch / download proxy for real curl and wget commands
+  app.post('/api/terminal/fetch-url', async (req, res) => {
+    try {
+      const { url, isHeaderOnly } = req.body;
+      if (!url) {
+        return res.status(400).json({ error: 'URL is required' });
+      }
+
+      // Add protocol if missing
+      const targetUrl = url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+      const response = await fetch(targetUrl, {
+        method: isHeaderOnly ? 'HEAD' : 'GET',
+        headers: {
+          'User-Agent': 'curl/8.5.0 (x86_64-pc-linux-gnu)',
+          'Accept': '*/*',
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const headersObj: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+
+      if (isHeaderOnly) {
+        let headerStr = `HTTP/2 ${response.status} ${response.statusText}\n`;
+        for (const [k, v] of Object.entries(headersObj)) {
+          headerStr += `${k}: ${v}\n`;
+        }
+        return res.json({
+          status: response.status,
+          headers: headerStr,
+          body: '',
+        });
+      }
+
+      const bodyText = await response.text();
+      return res.json({
+        status: response.status,
+        headers: headersObj,
+        body: bodyText,
+        contentType: response.headers.get('content-type') || 'text/plain',
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Connection failed';
+      return res.status(502).json({
+        error: `curl: (6) Could not resolve host or connection timeout: ${msg}`,
+      });
+    }
+  });
+
   // Server health / ping proxy for simulated real traceroute/ping
   app.get('/api/terminal/ping', (req, res) => {
     const host = req.query.host || '8.8.8.8';

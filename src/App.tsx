@@ -10,6 +10,7 @@ import { VPSInstance, VirtualFile, ServiceItem, PortRule, TerminalTab, TerminalT
 import { TerminalView } from './components/TerminalView';
 import { VPSControlPanel } from './components/VPSControlPanel';
 import { TopNav } from './components/TopNav';
+import { LiveCodeLab } from './components/LiveCodeLab';
 import {
   Terminal as TerminalIcon,
   Plus,
@@ -66,7 +67,7 @@ export default function App() {
   const [showSshModal, setShowSshModal] = useState(false);
   const [isRebooting, setIsRebooting] = useState(false);
   const [rebootMsg, setRebootMsg] = useState('');
-  const [activeView, setActiveView] = useState<'terminal' | 'htop' | 'nano' | 'files' | 'firewall'>('terminal');
+  const [activeView, setActiveView] = useState<'terminal' | 'codelab' | 'htop' | 'nano' | 'files' | 'firewall'>('terminal');
 
   // Sync files to localStorage
   useEffect(() => {
@@ -299,7 +300,7 @@ export default function App() {
   };
 
   // Nav View Handler
-  const handleNavViewSelect = (view: 'terminal' | 'htop' | 'nano' | 'files' | 'firewall') => {
+  const handleNavViewSelect = (view: 'terminal' | 'codelab' | 'htop' | 'nano' | 'files' | 'firewall') => {
     setActiveView(view);
     if (view === 'htop') {
       handleUpdateTab(activeTabId, prev => ({ ...prev, activeApp: 'htop' }));
@@ -475,14 +476,24 @@ export default function App() {
             ))}
           </div>
 
-          {/* Terminal Main Viewport */}
+          {/* Terminal / Live Code Lab Main Viewport */}
           <div className="flex-1 min-h-0 flex flex-col relative overflow-hidden">
-            {isRebooting ? (
+            {activeView === 'codelab' ? (
+              <LiveCodeLab
+                vps={activeVps}
+                files={files}
+                onUpdateFiles={setFiles}
+                onSendTerminalCommand={cmd => {
+                  setActiveView('terminal');
+                  handleRunCommandOnActiveTab(cmd);
+                }}
+              />
+            ) : isRebooting ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 bg-black text-center space-y-4 font-mono">
                 <RotateCw className="w-10 h-10 text-cyan-400 animate-spin" />
                 <div className="text-lg font-semibold text-white">Rebooting {activeVps.name}...</div>
                 <div className="text-xs text-neutral-400 max-w-sm">{rebootMsg}</div>
-                <div className="text-[11px] text-neutral-500">Ramim VPS Kernel re-initialization in ~3s</div>
+                <div className="text-[11px] text-neutral-500">Shahajjo VPS Kernel re-initialization in ~3s</div>
               </div>
             ) : layoutMode === 'single' ? (
               <TerminalView
@@ -672,7 +683,7 @@ export default function App() {
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <Key className="w-4 h-4 text-cyan-400" />
-                <span className="font-semibold text-sm text-white">Ramim VPS · SSH Access</span>
+                <span className="font-semibold text-sm text-white">Shahajjo VPS · SSH Access</span>
               </div>
               <button onClick={() => setShowSshModal(false)} className="min-h-[36px] min-w-[36px] flex items-center justify-center text-neutral-400 hover:text-white rounded-lg">
                 <X className="w-5 h-5" />
@@ -710,7 +721,7 @@ export default function App() {
                 <div>Port: <strong className="text-white">22 (TCP)</strong></div>
                 <div>Auth: <strong className="text-cyan-400">Sudoers Active</strong></div>
                 <div>Default User: <strong className="text-white">admin</strong></div>
-                <div>Default Pass: <strong className="text-emerald-400">admin</strong></div>
+                <div>Default Pass: <strong className="text-emerald-400 font-mono font-bold">ramim123@Q</strong></div>
               </div>
             </div>
 

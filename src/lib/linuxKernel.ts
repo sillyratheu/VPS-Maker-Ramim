@@ -722,13 +722,13 @@ admin       1420  0.0  0.0  12400  3800 pts/0    R+   12:48   0:00 ps aux`;
     case 'fastfetch': {
       resultOutput = `\x1b[38;5;45m       .---.                     \x1b[1;37m${user}\x1b[0m@\x1b[1;36m${vps.hostname}\x1b[0m
 \x1b[38;5;45m      /     \\                    \x1b[37m--------------------\x1b[0m
-\x1b[38;5;45m     | () () |   \x1b[1;35mRAMIM VPS\x1b[0m       \x1b[38;5;45mOS:\x1b[0m ${vps.os}
-\x1b[38;5;45m      \\  _  /    \x1b[38;5;244mEnterprise\x1b[0m      \x1b[38;5;45mHost:\x1b[0m Ramim VPS Cloud KVM (${vps.region})
+\x1b[38;5;45m     | () () |   \x1b[1;36mSHAHAJJO VPS\x1b[0m    \x1b[38;5;45mOS:\x1b[0m ${vps.os}
+\x1b[38;5;45m      \\  _  /    \x1b[38;5;244mEnterprise\x1b[0m      \x1b[38;5;45mHost:\x1b[0m Shahajjo VPS Cloud KVM (${vps.region})
 \x1b[38;5;45m       \`---'                     \x1b[38;5;45mKernel:\x1b[0m 6.8.0-45-generic
 \x1b[38;5;45m     /|     |\\                   \x1b[38;5;45mUptime:\x1b[0m 4 days, 16 hours, 24 mins
 \x1b[38;5;45m    / |     | \\                  \x1b[38;5;45mPackages:\x1b[0m 742 (dpkg), 1 (snap)
 \x1b[38;5;45m   /  |     |  \\                 \x1b[38;5;45mShell:\x1b[0m bash 5.2.21
-\x1b[38;5;45m      |     |                    \x1b[38;5;45mTerminal:\x1b[0m Ramim VPS Web-TTY (xterm-256color)
+\x1b[38;5;45m      |     |                    \x1b[38;5;45mTerminal:\x1b[0m Shahajjo VPS Web-TTY (xterm-256color)
 \x1b[38;5;45m      |_____|                    \x1b[38;5;45mCPU:\x1b[0m AMD EPYC 7763 (${vps.vcpu} vCPU) @ 3.4GHz
 \x1b[38;5;45m                                 \x1b[38;5;45mMemory:\x1b[0m 1842MiB / ${vps.ramGb * 1024}MiB (DDR5)
 \x1b[38;5;45m                                 \x1b[38;5;45mDisk (/):\x1b[0m 24G / ${vps.diskGb}G NVMe (15%)
@@ -976,10 +976,14 @@ rtt min/avg/max/mdev = 8.810/9.080/9.420/0.228 ms`;
       break;
     }
 
-    case 'curl': {
+    case 'curl':
+    case 'wget': {
       const isHeader = args.includes('-I') || args.includes('-i');
-      const target = args.find(a => !a.startsWith('-')) || 'http://localhost';
-      if (target.includes('localhost') || target.includes('127.0.0.1') || target.includes(vps.ip)) {
+      const isSave = cmd === 'wget' || args.includes('-O') || args.includes('-o');
+      const nonFlag = args.filter(a => !a.startsWith('-'));
+      const targetUrl = nonFlag[0] || 'http://localhost';
+
+      if (targetUrl.includes('localhost') || targetUrl.includes('127.0.0.1') || targetUrl.includes(vps.ip)) {
         if (isHeader) {
           resultOutput = `HTTP/1.1 200 OK
 Server: nginx/1.24.0 (Ubuntu)
@@ -993,21 +997,69 @@ Accept-Ranges: bytes`;
         } else {
           resultOutput = `<!DOCTYPE html>
 <html>
-<head><title>Welcome to Nginx on Ramim VPS</title></head>
+<head><title>Welcome to Nginx on Shahajjo VPS</title></head>
 <body>
-  <h1>Welcome to Ramim VPS!</h1>
+  <h1>Welcome to Shahajjo VPS!</h1>
   <p>The nginx web server is successfully running on ${vps.hostname}.</p>
 </body>
 </html>`;
         }
       } else {
-        resultOutput = `HTTP/2 200 
-date: ${new Date().toUTCString()}
-content-type: text/html; charset=UTF-8
-server: cloud-edge-vps
-cache-control: max-age=3600
-
-[Response from ${target} received successfully: 1240 bytes]`;
+        // Real external web fetch via /api/terminal/fetch-url!
+        try {
+          const fetchRes = await fetch('/api/terminal/fetch-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: targetUrl, isHeaderOnly: isHeader }),
+          });
+          const data = await fetchRes.json();
+          if (fetchRes.ok) {
+            if (isHeader) {
+              resultOutput = data.headers || `HTTP/2 ${data.status} OK`;
+            } else if (isSave) {
+              // Extract target filename
+              let fileName = 'downloaded_file';
+              try {
+                const u = new URL(targetUrl.startsWith('http') ? targetUrl : `https://${targetUrl}`);
+                const segs = u.pathname.split('/').filter(Boolean);
+                if (segs.length > 0) fileName = segs[segs.length - 1];
+              } catch {
+                fileName = 'download.txt';
+              }
+              const savePath = normalizePath(fileName, cwd);
+              const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 16);
+              const updatedFiles = [...files];
+              const existing = getFileByPath(updatedFiles, savePath);
+              if (existing) {
+                existing.content = data.body;
+                existing.updatedAt = nowStr;
+                existing.size = data.body.length;
+              } else {
+                updatedFiles.push({
+                  name: fileName,
+                  path: savePath,
+                  content: data.body,
+                  isDirectory: false,
+                  permissions: isRoot ? '0755' : '0644',
+                  owner: user,
+                  group: user,
+                  updatedAt: nowStr,
+                  size: data.body.length,
+                });
+              }
+              newFilesList = updatedFiles;
+              resultOutput = `--${new Date().toUTCString()}--  ${targetUrl}\nResolving host... connected.\nHTTP request sent, awaiting response... 200 OK\nLength: ${data.body.length} (${(data.body.length / 1024).toFixed(1)}K) [${data.contentType || 'text/plain'}]\nSaving to: '${fileName}'\n\n${fileName} 100%[===================>] ${(data.body.length / 1024).toFixed(1)}K  --.-KB/s    in 0.04s\n\n${new Date().toLocaleTimeString()} (48.2 MB/s) - '${fileName}' saved [${data.body.length}/${data.body.length}]`;
+            } else {
+              resultOutput = data.body;
+            }
+          } else {
+            resultOutput = data.error || `curl: (6) Could not resolve host: ${targetUrl}`;
+            exitCode = 1;
+          }
+        } catch {
+          resultOutput = `curl: (7) Failed to connect to ${targetUrl}: Network request failed`;
+          exitCode = 1;
+        }
       }
       break;
     }

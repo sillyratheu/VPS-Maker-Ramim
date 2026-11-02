@@ -222,8 +222,12 @@ export const TerminalView: React.FC<Props> = ({
     const targetCmd = pendingSudoCmd;
     setPendingSudoCmd(null);
 
-    // Validate password (default admin password is 'admin' or user-configured)
-    const isValid = enteredPassword === vps.rootPassword || enteredPassword === 'admin' || enteredPassword === 'root';
+    // Validate password (default sudo password configured as 'ramim123@Q')
+    const isValid =
+      enteredPassword === 'ramim123@Q' ||
+      enteredPassword === vps.rootPassword ||
+      enteredPassword === 'admin' ||
+      enteredPassword === 'root';
 
     if (!isValid) {
       onUpdateTab(tab.id, prev => ({
@@ -541,12 +545,12 @@ export const TerminalView: React.FC<Props> = ({
         {tab.history.length === 0 && (
           <div className="pb-2 text-neutral-400 text-xs leading-relaxed space-y-1 select-none">
             <div className="text-white font-semibold flex items-center gap-2">
-              <span className="text-cyan-400 font-bold">Ramim VPS</span>
+              <span className="text-cyan-400 font-bold">Shahajjo VPS</span>
               <span>· {vps.os}</span>
               <span className="text-neutral-500 font-normal">({vps.hostname})</span>
             </div>
             <div>Documentation: <span className="text-sky-400 underline cursor-pointer">https://help.ubuntu.com</span></div>
-            <div>Management: <span className="text-neutral-300">Ramim VPS Web Console v2.4 (Dark Edition)</span></div>
+            <div>Management: <span className="text-neutral-300">Shahajjo VPS Cloud KVM Console v3.2 (Dark Edition)</span></div>
             <div className="pt-1 text-neutral-300">
               * Dedicated cloud instance · Region: {vps.region} · IP: {vps.ip}
             </div>
@@ -555,7 +559,7 @@ export const TerminalView: React.FC<Props> = ({
             </div>
             <div className="text-emerald-400/90 pt-1 flex items-center gap-1.5">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>Sudo privileges granted. Run <code className="bg-white/10 px-1 py-0.5 rounded text-emerald-300">sudo &lt;command&gt;</code> or elevate with <code className="bg-white/10 px-1 py-0.5 rounded text-emerald-300">sudo -i</code>.</span>
+              <span>Full Sudo &amp; Root privileges active. Sudo password: <code className="bg-white/10 px-1 py-0.5 rounded text-amber-300 font-mono font-bold">ramim123@Q</code>. Elevate with <code className="bg-white/10 px-1 py-0.5 rounded text-emerald-300 font-mono">sudo -i</code>.</span>
             </div>
           </div>
         )}
@@ -645,16 +649,16 @@ export const TerminalView: React.FC<Props> = ({
               />
             </div>
             <div className="flex items-center gap-2 text-[11px] text-neutral-400 flex-wrap">
-              <span>(Default root/sudo password: <strong className="text-neutral-200">admin</strong>)</span>
+              <span>(Default root/sudo password: <strong className="text-amber-300 font-mono">ramim123@Q</strong>)</span>
               <button
                 type="button"
                 onClick={() => {
-                  setSudoPasswordInput('admin');
+                  setSudoPasswordInput('ramim123@Q');
                   setTimeout(() => handleSudoPasswordSubmit({ preventDefault: () => {} } as any), 10);
                 }}
-                className="min-h-[36px] px-3 py-1 bg-amber-950/80 hover:bg-amber-900 text-amber-200 rounded-md border border-amber-700/60 font-medium"
+                className="min-h-[36px] px-3 py-1 bg-amber-950/80 hover:bg-amber-900 text-amber-200 rounded-md border border-amber-700/60 font-medium font-mono text-xs cursor-pointer active:scale-95 transition-all"
               >
-                Auto-fill 'admin'
+                Auto-fill 'ramim123@Q'
               </button>
             </div>
           </form>
